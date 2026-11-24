@@ -1,0 +1,15 @@
+# Dados pessoais
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Exportações e notas de corretagem
+*.json
+uploads/
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
