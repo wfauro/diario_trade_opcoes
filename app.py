@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, quote, urlencode
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import datetime
 import json
 import math
@@ -160,6 +161,19 @@ def number(v, name, minimum=None):
         raise ValueError(f"{name}: deve ser pelo menos {minimum}.")
     return n
 
+def decimal_number(v, name, minimum=None):
+    try:
+        n = Decimal(str(v))
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValueError(f"{name}: informe um número válido.")
+
+    if not n.is_finite():
+        raise ValueError(f"{name}: informe um número válido.")
+
+    if minimum is not None and n < Decimal(str(minimum)):
+        raise ValueError(f"{name}: deve ser pelo menos {minimum}.")
+
+    return n
 
 def integer(v, name, minimum=1):
     n = number(v, name, minimum)
