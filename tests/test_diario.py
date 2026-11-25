@@ -80,5 +80,20 @@ class JournalTests(unittest.TestCase):
         self.assertIsNotNone(op['unrealized'])
         self.assertEqual(op['realized'],0)
         self.assertAlmostEqual(op['unrealized'],50.0,places=2)
+    
+    def test_structure_unit_value_arredonda_meio_para_cima(self):
+        legs = [
+            {
+                "side": "LONG",
+                "entry_premium": "1.0000005",
+                "quantity": 2,
+            }
+        ]
+
+        result = app.structure_unit_value(legs)
+
+        self.assertEqual(result["quantity"], 2)
+        self.assertEqual(result["net_premium"], 2.000001)
+        self.assertEqual(result["unit_value"], 1.000001)
 
 if __name__=='__main__': unittest.main()

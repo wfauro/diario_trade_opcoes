@@ -248,29 +248,32 @@ VALUES(:operation_id,:code,:option_type,:strike,:expiry,:side,:quantity,
 # Cálculos
 # --------------------------------------------------------------------------
 def structure_unit_value(legs):
-    """Valor unitário da estrutura usando somente os prêmios.
-
-    Convenção: compra (LONG) soma prêmio × quantidade; venda (SHORT) subtrai.
-    Resultado positivo = débito, negativo = crédito. O denominador é a menor
-    quantidade entre as pernas. O multiplicador NÃO participa deste cálculo
-    (ele só entra nos resultados financeiros).
-
-    Exemplo: +500 a 0,90, +500 a 1,90 e -1000 a 1,34
-      500×0,90 + 500×1,90 − 1000×1,34 = 60,00; menor quantidade = 500;
-      valor unitário = 60,00 ÷ 500 = 0,12 (débito).
-
-    O valor "da montagem" é calculado uma vez, com as pernas originais e as
-    quantidades de entrada. O valor "atual" é recalculado com as pernas ainda
-    abertas e suas quantidades restantes (desmontando parte, a estrutura vira outra).
-    """
-    legs = [l for l in legs if int(l["quantity"]) > 0]
+    """Calcula o prêmio líquido e o valor unitário da estrutura."""
+    legs = [leg for leg in legs if int(leg["quantity"]) > 0]
     if not legs:
         return {"net_premium": 0.0, "quantity": 0, "unit_value": None}
-    net_premium = sum((1 if l["side"] == "LONG" else -1)
-                      * float(l["entry_premium"]) * int(l["quantity"]) for l in legs)
-    quantity = min(int(l["quantity"]) for l in legs)
-    return {"net_premium": round(net_premium, 6), "quantity": quantity,
-            "unit_value": round(net_premium / quantity, 6)}
+
+    net_premium = Decimal("0")
+    for leg in legs:
+        premium = decimal_number(leg["entry_premium"], "Prêmio", 0)
+        quantity_leg = int(leg["quantity"])
+        direction = Decimal("1") if leg["side"] == "LONG" else Decimal("-1")
+        net_premium += direction * premium * quantity_leg
+
+    quantity = min(int(leg["quantity"]) for leg in legs)
+    precision = Decimal("0.000001")
+
+    rounded_net = net_premium.quantize(precision, rounding=ROUND_HALF_UP)
+    unit_value = (net_premium / Decimal(quantity)).quantize(
+        precision, rounding=ROUND_HALF_UP
+    )
+
+    # Mantém os números no formato que o restante do app já espera.
+    return {
+        "net_premium": float(rounded_net),
+        "quantity": quantity,
+        "unit_value": float(unit_value),
+    }
 
 
 def calculate_unit_values(initial_legs, current_legs):
